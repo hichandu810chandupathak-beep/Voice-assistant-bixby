@@ -155,7 +155,7 @@ class AssistantForegroundService : Service() {
     private fun startWakeWordListener() {
         if (wakeWordListener != null) return
 
-        wakeWordListener = WakeWordListener(
+        val listener = WakeWordListener(
             context = applicationContext,
             onWakeWordDetected = {
                 Log.i(TAG, "Wake word accepted; opening Bixby overlay.")
@@ -166,7 +166,9 @@ class AssistantForegroundService : Service() {
                 preferences.edit().putBoolean(KEY_WAKE_WORD_ENABLED, false).apply()
                 stopWakeWordListener()
             }
-        ).also { it.start() }
+        )
+        wakeWordListener = listener
+        listener.start()
     }
 
     private fun stopWakeWordListener() {
@@ -216,7 +218,7 @@ class AssistantForegroundService : Service() {
         return builder
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("Samsung Bixby")
-            .setContentText("On-device wake-word listening is active")
+            .setContentText("Bixby foreground service is active")
             .setOngoing(true)
             .build()
     }
