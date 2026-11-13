@@ -73,8 +73,9 @@ object CommandExecutionRouter {
         }
 
         clickPattern.matchEntire(command)?.groupValues?.getOrNull(1)?.let { target ->
+            val requestedTarget = target.trim().removePrefix("on ").trim()
             return MyAccessibilityService.connectedInstance()?.clickTextOnActiveWindow(
-                target.trim()
+                requestedTarget
             ) ?: "Enable Bixby in Android Accessibility settings before clicking screen items."
         }
 
