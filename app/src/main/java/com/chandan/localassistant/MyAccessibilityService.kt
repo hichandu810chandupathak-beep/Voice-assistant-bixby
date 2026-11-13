@@ -79,13 +79,21 @@ class MyAccessibilityService : AccessibilityService() {
             val target = findMatchingNode(root, targetText)
                 ?: return "I couldn't find '$targetText' on the current screen."
 
-            val clickable = findClickableAncestor(target)
-            val clicked = clickable?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
+            var clickable: AccessibilityNodeInfo? = null
+            try {
+                clickable = findClickableAncestor(target)
+                val clicked = clickable?.performAction(
+                    AccessibilityNodeInfo.ACTION_CLICK
+                ) == true
 
-            if (clicked) {
-                "Clicked '$targetText'."
-            } else {
-                "Found '$targetText', but Android did not allow it to be clicked."
+                if (clicked) {
+                    "Clicked '$targetText'."
+                } else {
+                    "Found '$targetText', but Android did not allow it to be clicked."
+                }
+            } finally {
+                clickable?.recycle()
+                if (target !== root) target.recycle()
             }
         } catch (error: RuntimeException) {
             Log.e(TAG, "Unable to click node matching: $targetText", error)
@@ -123,11 +131,13 @@ class MyAccessibilityService : AccessibilityService() {
                 arguments
             )
 
-            when {
+            val result = when {
                 entered -> "Entered text into '$fieldDescription'."
                 !focused -> "Found '$fieldDescription', but couldn't focus it."
                 else -> "Android did not allow text entry in '$fieldDescription'."
             }
+            field.recycle()
+            result
         } catch (error: RuntimeException) {
             Log.e(TAG, "Unable to enter text into: $fieldDescription", error)
             "Couldn't enter text into '$fieldDescription'."
@@ -148,6 +158,7 @@ class MyAccessibilityService : AccessibilityService() {
             val child = node.getChild(index) ?: continue
             val match = findMatchingNode(child, target)
             if (match != null) return match
+            child.recycle()
         }
         return null
     }
@@ -164,6 +175,7 @@ class MyAccessibilityService : AccessibilityService() {
             val child = node.getChild(index) ?: continue
             val match = findEditableField(child, target)
             if (match != null) return match
+            child.recycle()
         }
         return null
     }
