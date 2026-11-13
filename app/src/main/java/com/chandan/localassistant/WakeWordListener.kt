@@ -24,7 +24,8 @@ import java.util.Locale
 class WakeWordListener(
     context: Context,
     private val onWakeWordDetected: () -> Unit,
-    private val onUnavailable: (String) -> Unit = {}
+    private val onUnavailable: (String) -> Unit = {},
+    private val onCommandRecognized: (String) -> Unit = {}
 ) {
     companion object {
         private const val TAG = "BixbyWakeWord"
@@ -90,12 +91,12 @@ class WakeWordListener(
         override fun onResults(results: Bundle?) {
             recognitionInProgress = false
             mainHandler.removeCallbacks(timeoutRunnable)
-            inspectRecognitionResults(results)
+            inspectRecognitionResults(results, isFinalResult = true)
             scheduleRestart(RESTART_DELAY_MS)
         }
 
         override fun onPartialResults(partialResults: Bundle?) {
-            inspectRecognitionResults(partialResults)
+            inspectRecognitionResults(partialResults, isFinalResult = false)
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) = Unit
@@ -203,16 +204,27 @@ class WakeWordListener(
         }
     }
 
-    private fun inspectRecognitionResults(bundle: Bundle?) {
+    private fun inspectRecognitionResults(
+        bundle: Bundle?,
+        isFinalResult: Boolean
+    ) {
         if (!enabled || bundle == null) return
 
         val candidates = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
             ?: return
-
-        val wakeWordFound = candidates.any { candidate ->
+        val wakeCandidate = candidates.firstOrNull { candidate ->
             WAKE_WORD_REGEX.containsMatchIn(candidate.trim())
+        } ?: return
+
+        val commandText = WAKE_WORD_REGEX
+            .replaceFirst(wakeCandidate.trim(), "")
+            .trim()
+            .trim(',', '.', '!', '?')
+
+        if (isFinalResult && commandText.isNotBlank()) {
+            Log.i(TAG, "Voice command recognized after wake word.")
+            onCommandRecognized(commandText)
         }
-        if (!wakeWordFound) return
 
         val now = android.os.SystemClock.elapsedRealtime()
         if (now - lastWakeWordAt < WAKE_WORD_COOLDOWN_MS) return
