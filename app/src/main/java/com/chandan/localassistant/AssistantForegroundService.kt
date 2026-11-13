@@ -165,6 +165,13 @@ class AssistantForegroundService : Service() {
                 Log.e(TAG, "Wake-word listener unavailable: $reason")
                 preferences.edit().putBoolean(KEY_WAKE_WORD_ENABLED, false).apply()
                 stopWakeWordListener()
+            },
+            onCommandRecognized = { command ->
+                val result = CommandExecutionRouter.execute(applicationContext, command)
+                Log.i(TAG, "Voice command result: $result")
+                showAssistantOverlay()
+                assistantOverlayView?.appendAssistantMessage("You said: $command")
+                assistantOverlayView?.appendAssistantMessage(result)
             }
         )
         wakeWordListener = listener
