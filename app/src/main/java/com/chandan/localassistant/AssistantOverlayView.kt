@@ -228,7 +228,7 @@ class AssistantOverlayView(
             setTextColor(Color.WHITE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             maxLines = 1
-            singleLine = true
+            setHorizontallyScrolling(true)
             background = null
             setPadding(dp(8), dp(8), dp(4), dp(8))
             imeOptions = EditorInfo.IME_ACTION_SEND
