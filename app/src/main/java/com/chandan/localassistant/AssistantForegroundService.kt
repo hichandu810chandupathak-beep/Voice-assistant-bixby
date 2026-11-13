@@ -179,7 +179,9 @@ class AssistantForegroundService : Service() {
     private fun showAssistantOverlay() {
         if (assistantOverlayView == null) {
             assistantOverlayView = AssistantOverlayView(applicationContext) { message ->
-                Log.d(TAG, "Overlay message submitted: $message")
+                val result = CommandExecutionRouter.execute(applicationContext, message)
+                Log.d(TAG, "Command result: $result")
+                assistantOverlayView?.appendAssistantMessage(result)
             }
         }
 
