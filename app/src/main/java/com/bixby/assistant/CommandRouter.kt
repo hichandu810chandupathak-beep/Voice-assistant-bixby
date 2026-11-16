@@ -48,6 +48,7 @@ class CommandRouter(private val context: Context) {
         }
         val appName = extractAppName(raw)
         if (appName != null) { launchApp(appName, respond); return }
+        if (launchBareAppName(raw, respond)) return
         if (!hasInternet()) { respond("You're offline. Installed apps and supported device settings still work."); return }
         val url = "https://www.google.com/search?q=" + URLEncoder.encode(raw.trim(), "UTF-8")
         launchIntent(Intent(Intent.ACTION_VIEW, Uri.parse(url)), "Searching the web for: " + raw.trim(), respond)
@@ -73,6 +74,26 @@ class CommandRouter(private val context: Context) {
         runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             .onSuccess { respond("Opening " + candidate.second + ".") }
             .onFailure { respond("Couldn't open " + candidate.second + ".") }
+    }
+
+    private fun launchBareAppName(raw: String, respond: (String) -> Unit): Boolean {
+        val wanted = normalize(raw)
+        val pm = context.packageManager
+        val apps = runCatching {
+            @Suppress("DEPRECATION")
+            pm.getInstalledApplications(PackageManager.GET_META_DATA)
+        }.getOrDefault(emptyList())
+        val match = apps.firstOrNull { app ->
+            val label = runCatching { pm.getApplicationLabel(app).toString() }.getOrDefault("")
+            app.enabled && (normalize(label) == wanted ||
+                normalize(app.packageName.substringAfterLast('.').replace('.', ' ')) == wanted)
+        } ?: return false
+        val launch = pm.getLaunchIntentForPackage(match.packageName) ?: return false
+        val label = pm.getApplicationLabel(match).toString()
+        runCatching { context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            .onSuccess { respond("Opening " + label + ".") }
+            .onFailure { respond("Couldn't open " + label + ".") }
+        return true
     }
 
     private fun score(wanted: String, label: String, packageName: String): Int {
