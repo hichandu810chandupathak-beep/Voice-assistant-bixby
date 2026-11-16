@@ -1,15 +1,14 @@
 package com.bixby.assistant
 
 import android.os.Bundle
-import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.bixby.assistant.R
 
 class MainActivity : ComponentActivity() {
 
@@ -25,8 +24,8 @@ class MainActivity : ComponentActivity() {
 
         val chatRecyclerView = findViewById<RecyclerView>(R.id.chatRecyclerView)
         messageInput = findViewById(R.id.messageInput)
-        val micButton = findViewById<android.widget.ImageButton>(R.id.micButton)
-        val sendButton = findViewById<android.widget.ImageButton>(R.id.sendButton)
+        val micButton = findViewById<ImageButton>(R.id.micButton)
+        val sendButton = findViewById<ImageButton>(R.id.sendButton)
 
         chatAdapter = ChatAdapter()
         chatRecyclerView.layoutManager = LinearLayoutManager(this).apply {
@@ -76,7 +75,6 @@ class MainActivity : ComponentActivity() {
 
         override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
             holder.message.text = messages[position]
-            (holder.message.layoutParams as RecyclerView.LayoutParams).gravity = Gravity.END
         }
 
         override fun getItemCount(): Int = messages.size
