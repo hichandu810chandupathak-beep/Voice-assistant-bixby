@@ -8,13 +8,22 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import java.net.URLEncoder
 import java.util.Locale
+import java.util.concurrent.Executors
 
 class CommandRouter(private val context: Context) {
     fun execute(raw: String, respond: (String) -> Unit) {
+        worker.execute {
+            executeCommand(raw) { message -> mainHandler.post { respond(message) } }
+        }
+    }
+
+    private fun executeCommand(raw: String, respond: (String) -> Unit) {
         val command = normalize(raw)
         if (command.isBlank()) { respond("Please say a complete command."); return }
         when {
@@ -108,6 +117,11 @@ class CommandRouter(private val context: Context) {
         val caps = manager.getNetworkCapabilities(network) ?: return false
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
             caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
+    companion object {
+        private val worker = Executors.newSingleThreadExecutor()
+        private val mainHandler = Handler(Looper.getMainLooper())
     }
 
     private fun normalize(value: String) = value.lowercase(Locale.ROOT)
