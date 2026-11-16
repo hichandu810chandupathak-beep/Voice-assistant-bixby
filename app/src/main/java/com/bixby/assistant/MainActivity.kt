@@ -15,17 +15,21 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import android.speech.tts.TextToSpeech
+import java.util.Locale
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var messageInput: EditText
     private lateinit var commandRouter: CommandRouter
     private var listeningRequested = false
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
 
     private val overlaySettingsLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (Settings.canDrawOverlays(this)) requestVoicePermissions()
@@ -59,6 +63,7 @@ class MainActivity : ComponentActivity() {
         window.navigationBarColor = android.graphics.Color.rgb(16, 17, 22)
         window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         commandRouter = CommandRouter(this)
+        tts = TextToSpeech(this, this)
         val list = findViewById<RecyclerView>(R.id.chatRecyclerView)
         messageInput = findViewById(R.id.messageInput)
         chatAdapter = ChatAdapter()
@@ -66,12 +71,35 @@ class MainActivity : ComponentActivity() {
         list.adapter = chatAdapter
         findViewById<ImageButton>(R.id.sendButton).setOnClickListener { sendMessage() }
         findViewById<ImageButton>(R.id.micButton).setOnClickListener { toggleVoiceListening() }
+        messageInput.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND) { sendMessage(); true } else false
+        }
         val filter = IntentFilter().apply {
             addAction(WakeWordForegroundService.ACTION_WAKE_WORD)
             addAction(WakeWordForegroundService.ACTION_STATUS)
             addAction(WakeWordForegroundService.ACTION_COMMAND_RESULT)
         }
         ContextCompat.registerReceiver(this, voiceReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onInit(status: Int) {
+        ttsReady = status == TextToSpeech.SUCCESS
+        if (ttsReady) {
+            tts?.language = Locale.getDefault()
+            val prefs = getSharedPreferences("bixby_setup", MODE_PRIVATE)
+            if (prefs.getBoolean("greeting_pending", false)) {
+                prefs.edit().putBoolean("greeting_pending", false).apply()
+                speak("Hello, I am Bixby, how can I help you.")
+            }
+        }
+    }
+
+    private fun speak(message: String) {
+        if (!ttsReady) return
+        val locale = if (message.any { it in '\u0900'..'\u097F' }) Locale.forLanguageTag("hi-IN") else Locale.forLanguageTag("en-IN")
+        val result = tts?.setLanguage(locale)
+        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) tts?.language = Locale.US
+        tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "bixby_reply")
     }
 
     private fun toggleVoiceListening() {
@@ -117,6 +145,7 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 chatAdapter.addMessage(response)
                 scrollChatToBottom()
+                speak(response)
             }
         }
     }
@@ -127,6 +156,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         try { unregisterReceiver(voiceReceiver) } catch (_: IllegalArgumentException) { }
+        tts?.stop()
+        tts?.shutdown()
+        tts = null
         super.onDestroy()
     }
 

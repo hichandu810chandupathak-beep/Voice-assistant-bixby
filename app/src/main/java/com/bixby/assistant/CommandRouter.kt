@@ -27,6 +27,12 @@ class CommandRouter(private val context: Context) {
         val command = normalize(raw)
         if (command.isBlank()) { respond("Please say a complete command."); return }
         when {
+            command.startsWith("call ") || command.startsWith("phone ") || command.contains("call karo") || command.contains("phone lagao") || command.contains("कॉल") || command.contains("फोन लगाओ") -> {
+                val number = Regex("[+]?[0-9][0-9() -]{5,}[0-9]").find(raw)?.value?.replace(Regex("[^0-9+]"), "")
+                if (number.isNullOrBlank()) respond("Please include a phone number.")
+                else launchIntent(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(number))), "Opening the dialer. Review the number and tap Call to confirm.", respond)
+                return
+            }
             command in setOf("home", "go home", "open home screen", "show home screen") -> {
                 launchIntent(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), "Opening Home screen.", respond); return
             }
@@ -48,6 +54,8 @@ class CommandRouter(private val context: Context) {
         val appName = extractAppName(raw)
         if (appName != null) { launchApp(appName, respond); return }
         if (launchBareAppName(raw, respond)) return
+        val assistantOpened = runCatching { context.startActivity(Intent(Intent.ACTION_ASSIST).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+        if (assistantOpened) { respond("Opening your device assistant for this request."); return }
         if (!hasInternet()) { respond("You're offline. Installed apps and supported device settings still work."); return }
         val url = "https://www.google.com/search?q=" + URLEncoder.encode(raw.trim(), "UTF-8")
         launchIntent(Intent(Intent.ACTION_VIEW, Uri.parse(url)), "Searching the web for: " + raw.trim(), respond)
@@ -145,5 +153,5 @@ class CommandRouter(private val context: Context) {
     }
 
     private fun normalize(value: String) = value.lowercase(Locale.ROOT)
-        .replace(Regex("[^a-z0-9 ]"), " ").replace(Regex("\\s+"), " ").trim()
+        .replace(Regex("[^\\p{L}\\p{N} ]"), " ").replace(Regex("\\s+"), " ").trim()
 }

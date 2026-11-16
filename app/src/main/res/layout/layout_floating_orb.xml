@@ -1,42 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingStart="10dp"
-    android:paddingEnd="10dp"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp"
-    android:background="@drawable/bg_floating_orb">
-
-    <com.bixby.assistant.BixbyOrbView
-        android:id="@+id/floatingOrbCore"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
-        android:clickable="true"
-        android:focusable="true" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:text="Bixby is listening"
-        android:textColor="#FFFFFF"
-        android:textSize="13sp"
-        android:fontFamily="sans" />
-
-    <TextView
-        android:id="@+id/orbDismiss"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_marginStart="8dp"
-        android:gravity="center"
-        android:text="×"
-        android:textColor="#DDEBFF"
-        android:textSize="24sp"
-        android:background="?android:attr/selectableItemBackgroundBorderless"
-        android:clickable="true"
-        android:focusable="true"
-        android:contentDescription="Dismiss floating orb" />
+ android:layout_width="wrap_content" android:layout_height="wrap_content"
+ android:orientation="vertical" android:gravity="center" android:padding="12dp"
+ android:background="@android:color/transparent">
+ <com.bixby.assistant.BixbyOrbView android:id="@+id/floatingOrbCore"
+  android:layout_width="142dp" android:layout_height="142dp"
+  android:background="@android:color/transparent" android:clickable="true" android:focusable="true"/>
+ <TextView android:id="@+id/orbTranscript" android:layout_width="240dp"
+  android:layout_height="wrap_content" android:layout_marginTop="8dp"
+  android:gravity="center" android:text="Listening for Bixby" android:textColor="#FFFFFF"
+  android:textSize="14sp" android:maxLines="2" android:ellipsize="end"
+  android:background="@android:color/transparent"/>
+ <TextView android:id="@+id/orbDismiss" android:layout_width="54dp" android:layout_height="54dp"
+  android:layout_gravity="center_horizontal" android:layout_marginTop="18dp"
+  android:gravity="center" android:text="✕" android:textColor="#FFFFFF" android:textSize="26sp"
+  android:background="@drawable/bg_icon_button" android:visibility="gone"
+  android:contentDescription="Drop orb here to close"/>
 </LinearLayout>

@@ -79,7 +79,7 @@ class WakeWordForegroundService : Service() {
             val params = WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT, type,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                PixelFormat.TRANSLUCENT).apply { gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL; y = dp(96) }
+                PixelFormat.TRANSLUCENT).apply { gravity = Gravity.CENTER }
             view.findViewById<View>(R.id.floatingOrbCore).setOnClickListener {
                 startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
             }
@@ -236,7 +236,7 @@ class WakeWordForegroundService : Service() {
         const val EXTRA_STATUS = "status"
         private const val CHANNEL_ID = "bixby_voice_listener"
         private const val NOTIFICATION_ID = 4102
-        private const val RESTART_DELAY_MS = 450L
+        private const val RESTART_DELAY_MS = 1400L
         private const val COMMAND_WINDOW_MS = 8000L
     }
 }
