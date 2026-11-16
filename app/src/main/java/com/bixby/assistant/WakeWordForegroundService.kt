@@ -30,6 +30,7 @@ class WakeWordForegroundService : Service() {
     private var speechRecognizer: SpeechRecognizer? = null
     private val handler = Handler(Looper.getMainLooper())
     private var listening = false
+    private var recognitionActive = false
     private var awaitingCommand = false
     private var windowManager: WindowManager? = null
     private var floatingOrb: View? = null
@@ -44,6 +45,7 @@ class WakeWordForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
+            null -> { startAsForeground(); showFloatingOrb(); startListening() }
             ACTION_STOP -> {
                 stopListening(); hideFloatingOrb(); stopForeground(STOP_FOREGROUND_REMOVE); stopSelf()
                 return START_NOT_STICKY
@@ -52,7 +54,7 @@ class WakeWordForegroundService : Service() {
             ACTION_SHOW_ORB -> showFloatingOrb()
             ACTION_HIDE_ORB -> hideFloatingOrb()
         }
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     private fun startAsForeground() {
@@ -61,7 +63,7 @@ class WakeWordForegroundService : Service() {
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_mic).setContentTitle("Bixby voice listening")
             .setContentText("Listening for Hey Bixby or Bixby. Tap to open.")
-            .setContentIntent(pending).setOngoing(true)
+            .setContentIntent(pending).setOngoing(true).setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE).setPriority(NotificationCompat.PRIORITY_LOW).build()
         if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIFICATION_ID, notification,
             android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
@@ -128,8 +130,8 @@ class WakeWordForegroundService : Service() {
             override fun onRmsChanged(rmsdB: Float) = Unit
             override fun onBufferReceived(buffer: ByteArray?) = Unit
             override fun onEndOfSpeech() = Unit
-            override fun onError(error: Int) = scheduleRestart()
-            override fun onResults(results: Bundle?) { handleFinalResult(results); scheduleRestart() }
+            override fun onError(error: Int) { recognitionActive = false; scheduleRestart() }
+            override fun onResults(results: Bundle?) { recognitionActive = false; handleFinalResult(results); scheduleRestart() }
             override fun onPartialResults(partialResults: Bundle?) { /* Never execute partial hypotheses. */ }
             override fun onEvent(eventType: Int, params: Bundle?) = Unit
         })
@@ -141,14 +143,21 @@ class WakeWordForegroundService : Service() {
         val request = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 900L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1300L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 250L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 550L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 750L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 180L)
         }
-        try { speechRecognizer?.startListening(request) } catch (_: Exception) { scheduleRestart() }
+        if (recognitionActive) return
+        try {
+            speechRecognizer?.startListening(request)
+            recognitionActive = true
+        } catch (_: Exception) {
+            recognitionActive = false
+            scheduleRestart()
+        }
     }
 
     private fun handleFinalResult(bundle: Bundle?) {
@@ -189,14 +198,18 @@ class WakeWordForegroundService : Service() {
         handler.postDelayed(recognitionRestart, RESTART_DELAY_MS)
     }
     private val recognitionRestart = Runnable {
-        if (listening) { try { speechRecognizer?.cancel() } catch (_: Exception) { }; startRecognitionRequest() }
+        if (listening) {
+            try { speechRecognizer?.cancel() } catch (_: Exception) { }
+            recognitionActive = false
+            startRecognitionRequest()
+        }
     }
 
     private fun sendStatus(message: String) {
         sendBroadcast(Intent(ACTION_STATUS).setPackage(packageName).putExtra(EXTRA_STATUS, message))
     }
     private fun stopListening() {
-        listening = false; awaitingCommand = false; handler.removeCallbacksAndMessages(null)
+        listening = false; recognitionActive = false; awaitingCommand = false; handler.removeCallbacksAndMessages(null)
         try { speechRecognizer?.stopListening(); speechRecognizer?.destroy() } catch (_: Exception) { }
         speechRecognizer = null
         sendStatus("Voice listening stopped.")
@@ -223,7 +236,7 @@ class WakeWordForegroundService : Service() {
         const val EXTRA_STATUS = "status"
         private const val CHANNEL_ID = "bixby_voice_listener"
         private const val NOTIFICATION_ID = 4102
-        private const val RESTART_DELAY_MS = 350L
+        private const val RESTART_DELAY_MS = 450L
         private const val COMMAND_WINDOW_MS = 8000L
     }
 }

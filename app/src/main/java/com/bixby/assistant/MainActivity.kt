@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
         setContentView(R.layout.activity_main)
         window.statusBarColor = android.graphics.Color.rgb(16, 17, 22)
         window.navigationBarColor = android.graphics.Color.rgb(16, 17, 22)
+        window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         commandRouter = CommandRouter(this)
         val list = findViewById<RecyclerView>(R.id.chatRecyclerView)
         messageInput = findViewById(R.id.messageInput)

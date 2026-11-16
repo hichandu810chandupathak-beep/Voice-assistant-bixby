@@ -5,31 +5,33 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RadialGradient
+import android.graphics.SweepGradient
 import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.View
-import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import kotlin.math.min
+import kotlin.math.sin
 
 class BixbyOrbView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private var pulse = 0.5f
-    private var rotation = 0f
+    private var phase = 0f
     private val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-        duration = 1800L
+        duration = 5200L
         repeatCount = ValueAnimator.INFINITE
-        interpolator = AccelerateDecelerateInterpolator()
+        interpolator = LinearInterpolator()
         addUpdateListener {
-            val phase = it.animatedValue as Float
-            pulse = 0.5f + 0.5f * kotlin.math.sin(phase * Math.PI * 2).toFloat()
-            rotation = phase * 360f
+            phase = it.animatedValue as Float
             invalidate()
         }
     }
 
-    init { contentDescription = "Animated Bixby voice orb" }
+    init {
+        contentDescription = "Live animated Bixby voice orb"
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+    }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -43,37 +45,60 @@ class BixbyOrbView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        val side = min(width, height).toFloat()
+        if (side <= 0f) return
         val cx = width / 2f
         val cy = height / 2f
-        val radius = min(width, height) * (0.31f + pulse * 0.035f)
-        val glowRadius = radius * (1.65f + pulse * 0.2f)
+        val pulse = 0.5f + 0.5f * sin(phase * Math.PI * 2.0).toFloat()
+        val r = side * (0.255f + pulse * 0.018f)
 
+        // Soft, breathing outer aura.
         paint.style = Paint.Style.FILL
         paint.shader = RadialGradient(
-            cx, cy, glowRadius,
-            intArrayOf(0x8867D7FF.toInt(), 0x443D78FF, 0x003D78FF),
-            floatArrayOf(0f, 0.58f, 1f), Shader.TileMode.CLAMP
+            cx, cy, side * 0.49f,
+            intArrayOf(0xAA53DFFF.toInt(), 0x665D72FF, 0x225E4DFF, 0x003D4DFF),
+            floatArrayOf(0f, 0.48f, 0.78f, 1f), Shader.TileMode.CLAMP
         )
-        canvas.drawCircle(cx, cy, glowRadius, paint)
-
-        paint.shader = RadialGradient(
-            cx - radius * 0.22f, cy - radius * 0.28f, radius * 1.55f,
-            intArrayOf(0xFFFFFFFF.toInt(), 0xFF79E5FF.toInt(), 0xFF587BFF.toInt(), 0xFF171D55.toInt()),
-            floatArrayOf(0f, 0.28f, 0.7f, 1f), Shader.TileMode.CLAMP
-        )
-        canvas.drawCircle(cx, cy, radius, paint)
+        canvas.drawCircle(cx, cy, side * (0.43f + pulse * 0.035f), paint)
         paint.shader = null
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2.2f
-        paint.color = 0xAA9CEBFF.toInt()
-        canvas.save()
-        canvas.rotate(rotation, cx, cy)
-        canvas.drawArc(
-            cx - radius * 1.18f, cy - radius * 1.18f,
-            cx + radius * 1.18f, cy + radius * 1.18f,
-            205f, 105f, false, paint
+
+        // Three independently rotating luminous orbital rings.
+        for (i in 0..2) {
+            val ringRadius = r * (1.23f + i * 0.19f)
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = if (i == 0) side * 0.026f else side * 0.014f
+            paint.strokeCap = Paint.Cap.ROUND
+            paint.shader = SweepGradient(
+                cx, cy,
+                intArrayOf(0x003DEBFF, 0xCC6FEAFF.toInt(), 0xFFB7F7FF.toInt(), 0x224B65FF, 0x003DEBFF),
+                null
+            )
+            canvas.save()
+            canvas.rotate(phase * (if (i == 1) -360f else 360f) + i * 115f, cx, cy)
+            canvas.drawArc(cx-ringRadius, cy-ringRadius, cx+ringRadius, cy+ringRadius,
+                18f + i * 47f, 218f - i * 24f, false, paint)
+            canvas.restore()
+            paint.shader = null
+        }
+
+        // Glass-like core with a bright cyan-to-indigo depth gradient.
+        paint.style = Paint.Style.FILL
+        paint.shader = RadialGradient(
+            cx - r * 0.28f, cy - r * 0.34f, r * 1.55f,
+            intArrayOf(0xFFFFFFFF.toInt(), 0xFFB8F5FF.toInt(), 0xFF55C8FF.toInt(),
+                0xFF536CFF.toInt(), 0xFF171A55.toInt()),
+            floatArrayOf(0f, 0.19f, 0.46f, 0.76f, 1f), Shader.TileMode.CLAMP
         )
-        canvas.restore()
+        canvas.drawCircle(cx, cy, r, paint)
+        paint.shader = null
+
+        // Specular highlight and fine inner edge.
+        paint.color = 0x77FFFFFF
+        canvas.drawOval(cx-r*0.58f, cy-r*0.72f, cx+r*0.18f, cy-r*0.34f, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = side * 0.012f
+        paint.color = 0x99C8F7FF.toInt()
+        canvas.drawCircle(cx, cy, r * 1.04f, paint)
         paint.style = Paint.Style.FILL
     }
 }

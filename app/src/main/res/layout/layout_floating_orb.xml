@@ -12,8 +12,8 @@
 
     <com.bixby.assistant.BixbyOrbView
         android:id="@+id/floatingOrbCore"
-        android:layout_width="82dp"
-        android:layout_height="82dp"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
         android:clickable="true"
         android:focusable="true" />
 
