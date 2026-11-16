@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Samsung Bixby</string>
+    <string name="accessibility_service_description">Allows Bixby to perform the Back navigation command when you explicitly enable this service.</string>
 </resources>
