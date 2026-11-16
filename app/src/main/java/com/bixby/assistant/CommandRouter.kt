@@ -36,8 +36,7 @@ class CommandRouter(private val context: Context) {
                 launchIntent(Intent(action), "Opening Wi-Fi controls. Confirm the change in Android settings.", respond); return
             }
             command.contains("bluetooth") -> {
-                val action = if (Build.VERSION.SDK_INT >= 29) Settings.Panel.ACTION_BLUETOOTH else Settings.ACTION_BLUETOOTH_SETTINGS
-                launchIntent(Intent(action), "Opening Bluetooth controls. Confirm the change in Android settings.", respond); return
+                launchIntent(Intent(Settings.ACTION_BLUETOOTH_SETTINGS), "Opening Bluetooth settings. Confirm the change in Android settings.", respond); return
             }
             command.contains("airplane") || command.contains("flight mode") -> {
                 launchIntent(Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS), "Opening Airplane Mode settings. Android controls this toggle.", respond); return
