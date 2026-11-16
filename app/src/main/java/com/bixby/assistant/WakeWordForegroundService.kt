@@ -154,7 +154,7 @@ class WakeWordForegroundService : Service() {
     private fun handleFinalResult(bundle: Bundle?) {
         val phrase = bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim().orEmpty()
         if (phrase.isBlank()) return
-        val wake = Regex("(?i)\\\\b(?:hey\\\\s+)?bixby\\\\b").find(phrase)
+        val wake = Regex("(?i)\\b(?:hey\\s+)?bixby\\b").find(phrase)
         if (wake != null) {
             sendBroadcast(Intent(ACTION_WAKE_WORD).setPackage(packageName).putExtra(EXTRA_RECOGNIZED_TEXT, phrase))
             showFloatingOrb()
