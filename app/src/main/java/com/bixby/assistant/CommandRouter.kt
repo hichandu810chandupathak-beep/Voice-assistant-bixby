@@ -4,6 +4,9 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.Manifest
+import android.provider.ContactsContract
+import androidx.core.content.ContextCompat
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -28,9 +31,17 @@ class CommandRouter(private val context: Context) {
         if (command.isBlank()) { respond("Please say a complete command."); return }
         when {
             command.startsWith("call ") || command.startsWith("phone ") || command.contains("call karo") || command.contains("phone lagao") || command.contains("कॉल") || command.contains("फोन लगाओ") -> {
-                val number = Regex("[+]?[0-9][0-9() -]{5,}[0-9]").find(raw)?.value?.replace(Regex("[^0-9+]"), "")
-                if (number.isNullOrBlank()) respond("Please include a phone number.")
-                else launchIntent(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(number))), "Opening the dialer. Review the number and tap Call to confirm.", respond)
+                val directNumber = Regex("[+]?[0-9][0-9() -]{5,}[0-9]").find(raw)?.value?.replace(Regex("[^0-9+]"), "")
+                if (!directNumber.isNullOrBlank()) {
+                    launchIntent(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", directNumber, null)), "Opening the dialer. Review the number and tap Call to confirm.", respond)
+                } else if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+                    respond("Allow Contacts permission, then repeat the call command.")
+                } else {
+                    val name = raw.replace(Regex("(?i)^.*?\\b(?:call|phone)\\s+"), "").trim()
+                    val number = findContactNumber(name)
+                    if (number == null) respond("I couldn't find a matching contact number.")
+                    else launchIntent(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)), "Contact found. Review the number and tap Call to confirm.", respond)
+                }
                 return
             }
             command in setOf("home", "go home", "open home screen", "show home screen") -> {
@@ -51,6 +62,8 @@ class CommandRouter(private val context: Context) {
                 launchIntent(Intent(Settings.ACTION_SETTINGS), "Opening Settings.", respond); return
             }
         }
+        val localReply = AssistantCore.reply(raw)
+        if (localReply != null) { respond(localReply); return }
         val appName = extractAppName(raw)
         if (appName != null) { launchApp(appName, respond); return }
         if (launchBareAppName(raw, respond)) return
@@ -59,6 +72,29 @@ class CommandRouter(private val context: Context) {
         if (!hasInternet()) { respond("You're offline. Installed apps and supported device settings still work."); return }
         val url = "https://www.google.com/search?q=" + URLEncoder.encode(raw.trim(), "UTF-8")
         launchIntent(Intent(Intent.ACTION_VIEW, Uri.parse(url)), "Searching the web for: " + raw.trim(), respond)
+    }
+
+
+    private fun findContactNumber(name: String): String? {
+        if (name.isBlank()) return null
+        val uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+        val columns = arrayOf(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME, ContactsContract.CommonDataKinds.Phone.NUMBER)
+        return try {
+            val cursor = context.contentResolver.query(uri, columns, null, null, null) ?: return null
+            cursor.use {
+                val nameColumn = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                val numberColumn = it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                var partial: String? = null
+                while (it.moveToNext()) {
+                    val savedName = normalize(it.getString(nameColumn).orEmpty())
+                    val phone = it.getString(numberColumn).orEmpty().replace(Regex("[^0-9+]"), "")
+                    if (phone.isBlank()) continue
+                    if (savedName == normalize(name)) return phone
+                    if (savedName.contains(normalize(name)) && partial == null) partial = phone
+                }
+                partial
+            }
+        } catch (_: Exception) { null }
     }
 
     private fun launchApp(name: String, respond: (String) -> Unit) {

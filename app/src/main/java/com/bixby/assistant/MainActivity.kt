@@ -116,7 +116,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun requestVoicePermissions() {
-        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_CONTACTS)
         if (Build.VERSION.SDK_INT >= 33) permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         val missing = permissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
         if (missing.isEmpty()) startVoiceService() else permissionLauncher.launch(missing.toTypedArray())

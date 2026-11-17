@@ -92,6 +92,24 @@ class BixbyOrbView @JvmOverloads constructor(
         canvas.drawCircle(cx, cy, r, paint)
         paint.shader = null
 
+
+        // Slow luminous dust motes flowing around the centre of the orb.
+        paint.style = Paint.Style.FILL
+        for (i in 0 until 30) {
+            val t = i / 30f
+            val angle = t * Math.PI.toFloat() * 2f + phase * Math.PI.toFloat() * 2f * (if (i % 2 == 0) 1f else -0.62f)
+            val radius = r * (0.18f + 0.57f * ((i * 17 % 29) / 29f))
+            val wave = sin(angle * 2.1f + phase * 6.28f) * r * 0.045f
+            val px = cx + kotlin.math.cos(angle) * (radius + wave)
+            val py = cy + kotlin.math.sin(angle * 1.18f) * (radius + wave)
+            paint.color = when (i % 3) {
+                0 -> 0xDFFFFFFF.toInt()
+                1 -> 0xDDA9F4FF.toInt()
+                else -> 0xCCB9B7FF.toInt()
+            }
+            canvas.drawCircle(px, py, side * (0.004f + (i % 3) * 0.0015f), paint)
+        }
+
         // Specular highlight and fine inner edge.
         paint.color = 0x77FFFFFF
         canvas.drawOval(cx-r*0.58f, cy-r*0.72f, cx+r*0.18f, cy-r*0.34f, paint)

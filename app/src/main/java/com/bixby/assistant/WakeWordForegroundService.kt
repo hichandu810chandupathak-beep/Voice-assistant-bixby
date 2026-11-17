@@ -16,6 +16,7 @@ import android.provider.Settings
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -35,12 +36,18 @@ class WakeWordForegroundService : Service() {
     private var windowManager: WindowManager? = null
     private var floatingOrb: View? = null
     private lateinit var commandRouter: CommandRouter
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         commandRouter = CommandRouter(this)
+        tts = TextToSpeech(this) { status ->
+            ttsReady = status == TextToSpeech.SUCCESS
+            if (ttsReady) tts?.language = Locale.getDefault()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -79,7 +86,7 @@ class WakeWordForegroundService : Service() {
             val params = WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT, type,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                PixelFormat.TRANSLUCENT).apply { gravity = Gravity.CENTER }
+                PixelFormat.TRANSLUCENT).apply { gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL; y = dp(34) }
             view.findViewById<View>(R.id.floatingOrbCore).setOnClickListener {
                 startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
             }
@@ -91,21 +98,67 @@ class WakeWordForegroundService : Service() {
     }
 
     private fun makeOrbDraggable(view: View, params: WindowManager.LayoutParams) {
-        var downX = 0f; var downY = 0f; var startX = 0; var startY = 0; var moved = false
-        view.setOnTouchListener { touched, event ->
+        val orb = view.findViewById<View>(R.id.floatingOrbCore)
+        val dismiss = view.findViewById<TextView>(R.id.orbDismiss)
+        var downX = 0f
+        var downY = 0f
+        var originX = 0
+        var originY = 0
+        var moved = false
+        var held = false
+        val longPress = Runnable {
+            held = true
+            dismiss.visibility = View.VISIBLE
+            updateTranscript("Drag down to the X to close")
+        }
+        dismiss.setOnClickListener { hideFloatingOrb() }
+        orb.setOnTouchListener { touched, event ->
             when (event.action) {
-                MotionEvent.ACTION_DOWN -> { downX = event.rawX; downY = event.rawY; startX = params.x; startY = params.y; moved = false; true }
-                MotionEvent.ACTION_MOVE -> {
-                    val dx = (event.rawX - downX).toInt(); val dy = (event.rawY - downY).toInt()
-                    if (abs(dx) > dp(5) || abs(dy) > dp(5)) moved = true
-                    params.x = startX + dx; params.y = startY + dy
-                    try { windowManager?.updateViewLayout(touched, params) } catch (_: Exception) { }
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.rawX
+                    downY = event.rawY
+                    originX = params.x
+                    originY = params.y
+                    moved = false
+                    held = false
+                    handler.postDelayed(longPress, 500L)
                     true
                 }
-                MotionEvent.ACTION_UP -> { if (!moved) touched.performClick(); true }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = (event.rawX - downX).toInt()
+                    val dy = (event.rawY - downY).toInt()
+                    if (abs(dx) > dp(7) || abs(dy) > dp(7)) {
+                        moved = true
+                        handler.removeCallbacks(longPress)
+                    }
+                    if (held || moved) {
+                        params.x = originX + dx
+                        params.y = originY - dy
+                        runCatching { windowManager?.updateViewLayout(view, params) }
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    handler.removeCallbacks(longPress)
+                    val droppedAtBottom = held && event.rawY >= resources.displayMetrics.heightPixels - dp(145)
+                    if (droppedAtBottom) {
+                        hideFloatingOrb()
+                    } else {
+                        dismiss.visibility = View.GONE
+                        if (!moved && !held) touched.performClick()
+                        params.x = 0
+                        params.y = dp(34)
+                        runCatching { windowManager?.updateViewLayout(view, params) }
+                    }
+                    true
+                }
                 else -> true
             }
         }
+    }
+
+    private fun updateTranscript(message: String) {
+        floatingOrb?.findViewById<TextView>(R.id.orbTranscript)?.text = message
     }
 
     private fun hideFloatingOrb() {
@@ -122,6 +175,7 @@ class WakeWordForegroundService : Service() {
         }
         listening = true
         sendStatus("Listening for Hey Bixby or Bixby.")
+        updateTranscript("Listening for Bixby")
         speechRecognizer = if (Build.VERSION.SDK_INT >= 31 && SpeechRecognizer.isOnDeviceRecognitionAvailable(this))
             SpeechRecognizer.createOnDeviceSpeechRecognizer(this) else SpeechRecognizer.createSpeechRecognizer(this)
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
@@ -132,7 +186,10 @@ class WakeWordForegroundService : Service() {
             override fun onEndOfSpeech() = Unit
             override fun onError(error: Int) { recognitionActive = false; scheduleRestart() }
             override fun onResults(results: Bundle?) { recognitionActive = false; handleFinalResult(results); scheduleRestart() }
-            override fun onPartialResults(partialResults: Bundle?) { /* Never execute partial hypotheses. */ }
+            override fun onPartialResults(partialResults: Bundle?) {
+                val heard = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                if (!heard.isNullOrBlank()) updateTranscript(heard)
+            }
             override fun onEvent(eventType: Int, params: Bundle?) = Unit
         })
         startRecognitionRequest()
@@ -186,6 +243,12 @@ class WakeWordForegroundService : Service() {
         if (command.trim().length < 2) { sendStatus("Please repeat the complete command."); return }
         commandRouter.execute(command) { result ->
             sendBroadcast(Intent(ACTION_COMMAND_RESULT).setPackage(packageName).putExtra(EXTRA_STATUS, result))
+            updateTranscript(result)
+            if (ttsReady) {
+                val replyLocale = if (result.any { it in '\u0900'..'\u097F' }) Locale.forLanguageTag("hi-IN") else Locale.forLanguageTag("en-IN")
+                tts?.setLanguage(replyLocale)
+                tts?.speak(result, TextToSpeech.QUEUE_FLUSH, null, "bixby_voice_reply")
+            }
         }
     }
 
@@ -221,7 +284,7 @@ class WakeWordForegroundService : Service() {
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
     }
-    override fun onDestroy() { stopListening(); hideFloatingOrb(); super.onDestroy() }
+    override fun onDestroy() { stopListening(); hideFloatingOrb(); tts?.stop(); tts?.shutdown(); tts = null; super.onDestroy() }
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
  android:layout_height="match_parent" android:fillViewport="true" android:background="#0B1020">
- <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
-  android:gravity="center" android:padding="28dp">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"
+  android:gravity="center_horizontal" android:padding="28dp" android:focusableInTouchMode="true">
   <com.bixby.assistant.BixbyOrbView android:layout_width="188dp" android:layout_height="188dp" android:layout_marginBottom="26dp"/>
   <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hello, I’m Bixby"
    android:textColor="#FFFFFF" android:textSize="32sp" android:textStyle="bold"/>
@@ -20,6 +20,6 @@
   <Button android:id="@+id/getStartedButton" android:layout_width="match_parent" android:layout_height="56dp"
    android:layout_marginTop="26dp" android:text="Get Started" android:textAllCaps="false" android:textSize="17sp"/>
   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="26dp"
-   android:gravity="center" android:text="Personal assistant project&#10;Developer: Chandan" android:textColor="#8291AD" android:textSize="12sp"/>
+   android:gravity="center" android:text="BUILT WITH ANDROID • KOTLIN • OPEN-SOURCE TOOLS&#10;LEAD CREATOR &amp; MASTER DEVELOPER&#10;CHANDAN PATHAK" android:textColor="#8291AD" android:textSize="12sp"/>
  </LinearLayout>
 </ScrollView>
