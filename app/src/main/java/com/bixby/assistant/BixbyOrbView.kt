@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RadialGradient
 import android.graphics.SweepGradient
 import android.graphics.Shader
@@ -92,6 +93,30 @@ class BixbyOrbView @JvmOverloads constructor(
         canvas.drawCircle(cx, cy, r, paint)
         paint.shader = null
 
+
+        // Translucent, slowly swirling liquid-light ribbons clipped inside the glass core.
+        canvas.save()
+        val orbClip = Path().apply { addCircle(cx, cy, r * 0.985f, Path.Direction.CW) }
+        canvas.clipPath(orbClip)
+        for (i in 0..4) {
+            val angle = phase * Math.PI.toFloat() * 2f * (if (i % 2 == 0) 1f else -0.72f) + i * 1.256f
+            val orbit = r * (0.24f + (i % 3) * 0.13f)
+            val bx = cx + kotlin.math.cos(angle) * orbit
+            val by = cy + kotlin.math.sin(angle * 1.17f) * orbit
+            val blobRadius = r * (0.58f + (i % 2) * 0.12f)
+            val colors = when (i % 5) {
+                0 -> intArrayOf(0xAA66F2FF.toInt(), 0x4466F2FF, 0x0066F2FF)
+                1 -> intArrayOf(0x99C17BFF.toInt(), 0x33C17BFF, 0x00C17BFF)
+                2 -> intArrayOf(0x997A8CFF.toInt(), 0x337A8CFF, 0x007A8CFF)
+                3 -> intArrayOf(0x99FF8BCB.toInt(), 0x33FF8BCB, 0x00FF8BCB)
+                else -> intArrayOf(0x99FFF0A0.toInt(), 0x33FFF0A0, 0x00FFF0A0)
+            }
+            paint.style = Paint.Style.FILL
+            paint.shader = RadialGradient(bx, by, blobRadius, colors, floatArrayOf(0f, 0.56f, 1f), Shader.TileMode.CLAMP)
+            canvas.drawCircle(bx, by, blobRadius, paint)
+            paint.shader = null
+        }
+        canvas.restore()
 
         // Slow luminous dust motes flowing around the centre of the orb.
         paint.style = Paint.Style.FILL
