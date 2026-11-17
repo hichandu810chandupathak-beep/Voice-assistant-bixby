@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="screen_background">#101116</color>
+    <color name="system_bar">#101116</color>
+    <color name="primary_text">#F5F6FA</color>
+    <color name="secondary_text">#AEB7C9</color>
+    <color name="accent">#63D8FF</color>
+</resources>

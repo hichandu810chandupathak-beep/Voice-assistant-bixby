@@ -203,8 +203,8 @@ class WakeWordForegroundService : Service() {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 550L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 750L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1250L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 900L)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 180L)
         }
         if (recognitionActive) return
@@ -220,7 +220,7 @@ class WakeWordForegroundService : Service() {
     private fun handleFinalResult(bundle: Bundle?) {
         val phrase = bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim().orEmpty()
         if (phrase.isBlank()) return
-        val wake = Regex("(?i)\\b(?:hey\\s+)?bixby\\b").find(phrase)
+        val wake = Regex("(?i)^\\s*(?:hey\\s+)?bixby\\b").find(phrase)
         if (wake != null) {
             sendBroadcast(Intent(ACTION_WAKE_WORD).setPackage(packageName).putExtra(EXTRA_RECOGNIZED_TEXT, phrase))
             showFloatingOrb()

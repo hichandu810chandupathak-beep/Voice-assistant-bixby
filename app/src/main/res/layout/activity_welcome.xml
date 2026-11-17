@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
- android:layout_height="match_parent" android:fillViewport="true" android:background="#0B1020">
+ android:layout_height="match_parent" android:fillViewport="true" android:background="@color/screen_background">
  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"
   android:gravity="center_horizontal" android:padding="28dp" android:focusableInTouchMode="true">
   <com.bixby.assistant.BixbyOrbView android:layout_width="188dp" android:layout_height="188dp" android:layout_marginBottom="26dp"/>
   <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hello, I’m Bixby"
-   android:textColor="#FFFFFF" android:textSize="32sp" android:textStyle="bold"/>
+   android:textColor="@color/primary_text" android:textSize="32sp" android:textStyle="bold"/>
   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
    android:gravity="center" android:text="Your personal voice assistant. Ask questions, open apps and control supported phone settings."
-   android:textColor="#C5D2EA" android:textSize="16sp"/>
+   android:textColor="@color/secondary_text" android:textSize="16sp"/>
   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="28dp"
    android:text="Optional phone number" android:textColor="#FFFFFF" android:textStyle="bold"/>
   <EditText android:id="@+id/phoneNumberInput" android:layout_width="match_parent" android:layout_height="54dp"
    android:layout_marginTop="8dp" android:hint="Number saved on this device" android:inputType="phone"
-   android:padding="14dp" android:textColor="#FFFFFF" android:textColorHint="#8D9AB4" android:backgroundTint="#63D8FF"/>
+   android:padding="14dp" android:textColor="#FFFFFF" android:textColorHint="#8D9AB4" android:backgroundTint="@color/accent"/>
   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp"
    android:text="Optional local profile only. OTP sign-in is not configured in this build."
-   android:textColor="#91A0BA" android:textSize="12sp"/>
+   android:textColor="@color/secondary_text" android:textSize="12sp"/>
   <Button android:id="@+id/getStartedButton" android:layout_width="match_parent" android:layout_height="56dp"
    android:layout_marginTop="26dp" android:text="Get Started" android:textAllCaps="false" android:textSize="17sp"/>
   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="26dp"
-   android:gravity="center" android:text="BUILT WITH ANDROID • KOTLIN • OPEN-SOURCE TOOLS&#10;LEAD CREATOR &amp; MASTER DEVELOPER&#10;CHANDAN PATHAK" android:textColor="#8291AD" android:textSize="12sp"/>
+   android:gravity="center" android:text="BUILT WITH ANDROID • KOTLIN • OPEN-SOURCE TOOLS&#10;LEAD CREATOR &amp; MASTER DEVELOPER&#10;CHANDAN PATHAK" android:textColor="@color/secondary_text" android:textSize="12sp"/>
  </LinearLayout>
 </ScrollView>

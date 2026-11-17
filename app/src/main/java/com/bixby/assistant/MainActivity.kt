@@ -59,8 +59,8 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        window.statusBarColor = android.graphics.Color.rgb(16, 17, 22)
-        window.navigationBarColor = android.graphics.Color.rgb(16, 17, 22)
+        window.statusBarColor = getColor(R.color.system_bar)
+        window.navigationBarColor = getColor(R.color.system_bar)
         window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         commandRouter = CommandRouter(this)
         tts = TextToSpeech(this, this)
@@ -106,6 +106,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         if (listeningRequested) {
             startService(Intent(this, WakeWordForegroundService::class.java).setAction(WakeWordForegroundService.ACTION_STOP))
             listeningRequested = false
+            getSharedPreferences("bixby_setup", MODE_PRIVATE).edit().putBoolean("voice_listening_enabled", false).apply()
             chatAdapter.addMessage("Voice listening stopped.")
             scrollChatToBottom()
             return
@@ -127,6 +128,8 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             ContextCompat.startForegroundService(this, Intent(this, WakeWordForegroundService::class.java)
                 .setAction(WakeWordForegroundService.ACTION_START))
             listeningRequested = true
+            getSharedPreferences("bixby_setup", MODE_PRIVATE).edit().putBoolean("voice_listening_enabled", true).apply()
+            startService(Intent(this, WakeWordForegroundService::class.java).setAction(WakeWordForegroundService.ACTION_HIDE_ORB))
             chatAdapter.addMessage("Voice listening started. Say “Bixby” followed by a command.")
             scrollChatToBottom()
         } catch (error: Exception) {
@@ -152,6 +155,20 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     private fun scrollChatToBottom() {
         findViewById<RecyclerView>(R.id.chatRecyclerView).scrollToPosition(chatAdapter.itemCount - 1)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (getSharedPreferences("bixby_setup", MODE_PRIVATE).getBoolean("voice_listening_enabled", false)) {
+            startService(Intent(this, WakeWordForegroundService::class.java).setAction(WakeWordForegroundService.ACTION_HIDE_ORB))
+        }
+    }
+
+    override fun onStop() {
+        if (getSharedPreferences("bixby_setup", MODE_PRIVATE).getBoolean("voice_listening_enabled", false)) {
+            startService(Intent(this, WakeWordForegroundService::class.java).setAction(WakeWordForegroundService.ACTION_SHOW_ORB))
+        }
+        super.onStop()
     }
 
     override fun onDestroy() {

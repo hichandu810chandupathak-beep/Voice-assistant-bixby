@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
-    android:background="#101116">
+    android:background="@color/screen_background">
 
     <TextView
         android:layout_width="match_parent"
@@ -13,7 +13,7 @@
         android:paddingTop="20dp"
         android:paddingBottom="16dp"
         android:text="Bixby"
-        android:textColor="#F5F6FA"
+        android:textColor="@color/primary_text"
         android:textSize="24sp"
         android:textStyle="bold" />
 
